@@ -71,7 +71,7 @@ export default function Properties() {
           </div>
           <h1 className="text-4xl md:text-6xl font-normal text-[#333333]">Propiedades</h1>
           <p className="text-lg text-[#666666] mt-2">
-            Explora nuestra selecci&oacute;n de propiedades en las mejores zonas de Buenos Aires.
+            Explora nuestra selecci&oacute;n de propiedades en las mejores zonas de Riobamba.
           </p>
         </div>
       </div>

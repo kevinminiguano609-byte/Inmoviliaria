@@ -48,13 +48,13 @@ export default function Footer() {
             <h4 className="font-medium text-base mb-5">Contacto</h4>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <Phone size={14} /> +54 11 4567-8900
+                <Phone size={14} /> +593 990332764
               </div>
               <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <Mail size={14} /> info@lucero.com
+                <Mail size={14} /> Infinity.inmoconstruct@gmail.com
               </div>
               <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <MapPin size={14} /> Av. Santa Fe 3200, Palermo, CABA
+                <MapPin size={14} />Riobamba Av. Tarqui y Orozco 
               </div>
             </div>
             <div className="flex gap-4 mt-6">
@@ -69,7 +69,7 @@ export default function Footer() {
 
         <div className="border-t mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            &copy; 2024 Lucero Inmobiliaria. Todos los derechos reservados.
+            &copy; 2026 Infynity Inmobiliaria - Constructora. Todos los derechos reservados.
           </p>
           <div className="flex gap-4 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
             <span className="hover:text-white cursor-pointer transition-colors">Política de privacidad</span>

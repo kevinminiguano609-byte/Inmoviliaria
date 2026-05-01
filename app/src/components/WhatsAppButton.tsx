@@ -15,7 +15,7 @@ export default function WhatsAppButton() {
   return (
     <a
       ref={ref}
-      href="https://wa.me/5491145678900?text=Hola!%20Me%20interesa%20conocer%20más%20sobre%20sus%20propiedades"
+      href="https://wa.me/593990332764?text=Hola%20me%20interesa%20la%20propiedad"
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-[300] w-[60px] h-[60px] bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform duration-300 animate-pulse-whatsapp"

@@ -379,9 +379,9 @@ function ContactHomeSection() {
             <h2 className="text-3xl md:text-[40px] font-normal text-[#333333] mb-8 leading-tight">Hablemos</h2>
             <div className="space-y-6">
               {[
-                { icon: Phone, text: '+54 11 4567-8900' },
-                { icon: Mail, text: 'info@lucero.com' },
-                { icon: MapPin, text: 'Av. Santa Fe 3200, Palermo, CABA' },
+                { icon: Phone, text: '+593 990 332 764' },
+                { icon: Mail, text: 'Infinity.inmoconstruct@gmail.com' },
+                { icon: MapPin, text: 'Riobamba Av. Tarqui y Orozco' },
                 { icon: Clock, text: 'Lun a Vie: 9:00 - 18:00 | Sáb: 10:00 - 14:00' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -391,13 +391,26 @@ function ContactHomeSection() {
               ))}
             </div>
             <div className="mt-12">
-              <p className="font-medium text-base text-[#333333] mb-4">S&iacute;guenos</p>
-              <div className="flex gap-4">
-                {['Instagram', 'Facebook', 'LinkedIn', 'YouTube'].map(s => (
-                  <span key={s} className="text-[#666666] hover:text-[#E53935] transition-colors cursor-pointer text-sm">{s}</span>
-                ))}
-              </div>
-            </div>
+  <p className="font-medium text-base text-[#333333] mb-4">Síguenos</p>
+  <div className="flex gap-4">
+    {[
+      { name: 'Instagram', url: 'https://www.instagram.com/infinity_inmoconst/' },
+      { name: 'Facebook', url: 'https://www.facebook.com/infinity.inmobiliaria.constructora.2025' },
+      { name: 'LinkedIn', url: 'https://linkedin.com/in/tuusuario' },
+      { name: 'Tik Tok', url: 'https://www.tiktok.com/@infinity.inmobili' }
+    ].map(s => (
+      <a
+        key={s.name}
+        href={s.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#666666] hover:text-[#E53935] transition-colors cursor-pointer text-sm"
+      >
+        {s.name}
+      </a>
+    ))}
+  </div>
+</div>
           </ScrollReveal>
 
           {/* Form */}
@@ -441,7 +454,7 @@ function ContactHomeSection() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
                     type="tel"
-                    placeholder="+54 11 0000-0000"
+                    placeholder="+593 934 234 132"
                     className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3.5 text-base outline-none transition-colors placeholder:text-[#999999]"
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}

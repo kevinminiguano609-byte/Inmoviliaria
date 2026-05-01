@@ -70,10 +70,10 @@ export default function Contact() {
 
               <div className="space-y-8">
                 {[
-                  { icon: Phone, label: 'Teléfono', value: '+54 11 4567-8900', sub: 'Lun a Vie 9:00 - 18:00 | Sáb 10:00 - 14:00' },
-                  { icon: Mail, label: 'Email', value: 'info@lucero.com', sub: 'Respondemos en menos de 24hs', href: 'mailto:info@lucero.com' },
-                  { icon: MapPin, label: 'Oficina central', value: 'Av. Santa Fe 3200, Palermo, CABA', sub: 'Buenos Aires, Argentina' },
-                  { icon: Phone, label: 'WhatsApp', value: '+54 9 11 4567-8900', sub: 'Respuesta inmediata', href: 'https://wa.me/5491145678900' },
+                  { icon: Phone, label: 'Teléfono', value: '+593 990 332 764', sub: 'Lun a Vie 9:00 - 18:00 | Sáb 10:00 - 14:00' },
+                  { icon: Mail, label: 'Email', value: 'Infinity.inmoconstruct@gmail.com', sub: 'Respondemos en menos de 24hs', href: 'mailto:info@lucero.com' },
+                  { icon: MapPin, label: 'Oficina central', value: 'Riobamba Av. Tarqui y Orozco', sub: 'Chimborazo, Ecuador' },
+                  { icon: Phone, label: 'WhatsApp', value: '+593 990 332 764', sub: 'Respuesta inmediata', href: 'https://wa.me/593990332764' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-4">
                     <item.icon size={24} className={item.label === 'WhatsApp' ? 'text-[#25D366] shrink-0 mt-0.5' : 'text-[#E53935] shrink-0 mt-0.5'} />
@@ -136,7 +136,7 @@ export default function Contact() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <input type="tel" placeholder="Ej: +54 11 0000-0000"
+                      <input type="tel" placeholder="Ej: +593 934 234 132"
                         className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3.5 text-base outline-none transition-colors placeholder:text-[#999]"
                         value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
                       <select required
@@ -181,13 +181,13 @@ export default function Contact() {
       {/* Map */}
       <div className="w-full h-[450px]">
         <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.5120209434044!2d-58.41311168477063!3d-34.58868498046341!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca83d2aa1521%3A0xc6a8ab5b3b0f5fa8!2sAv.%20Sta.%20Fe%203200%2C%20C1425%20CABA!5e0!3m2!1ses!2sar!4v1700000000000!5m2!1ses!2sar"
+          src="https://www.google.com/maps?q=-1.672636,-78.646671&output=embed"
           width="100%"
           height="100%"
           style={{ border: 0 }}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          title="Ubicación LUCERO"
+          title="Ubicación Infyniti Inmobiliaria - Constructora"
         />
       </div>
     </PageLayout>

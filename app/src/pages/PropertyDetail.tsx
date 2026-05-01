@@ -252,7 +252,7 @@ function ContactSidebar({ property }: { property: import('@/types').Property }) 
         </button>
 
         <a
-          href={`https://wa.me/5491145678900?text=Hola!%20Me%20interesa%20la%20propiedad%20en%20${encodeURIComponent(property.location)}`}
+          href={`https://wa.me/593990332764?text=${encodeURIComponent(`Hola! Me interesa la propiedad en ${property.location}`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full bg-[#25D366] hover:bg-[#20BD5C] text-white font-medium py-3.5 rounded-lg transition-all duration-300 hover:scale-[1.01] flex items-center justify-center gap-2 mb-6"
