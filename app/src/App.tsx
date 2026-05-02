@@ -3,6 +3,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { PropertyProvider } from '@/contexts/PropertyContext';
 import { LeadProvider } from '@/contexts/LeadContext';
 import { BlogProvider } from '@/contexts/BlogContext';
+import { TestimonialProvider } from '@/contexts/TestimonialContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,6 +17,7 @@ import Dashboard from '@/pages/Dashboard';
 import AdminProperties from '@/pages/AdminProperties';
 import AdminLeads from '@/pages/AdminLeads';
 import AdminBlog from '@/pages/AdminBlog';
+import AdminTestimonials from '@/pages/AdminTestimonials';
 import AdminSettings from '@/pages/AdminSettings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -36,27 +38,30 @@ export default function App() {
       <PropertyProvider>
         <LeadProvider>
           <BlogProvider>
-            <ToastProvider>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/propiedades" element={<Properties />} />
-                <Route path="/propiedades/:slug" element={<PropertyDetail />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/contacto" element={<Contact />} />
+            <TestimonialProvider>
+              <ToastProvider>
+                <Routes>
+                  {/* ── Public routes ── */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/propiedades" element={<Properties />} />
+                  <Route path="/propiedades/:slug" element={<PropertyDetail />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/contacto" element={<Contact />} />
 
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminRoute />} />
-                <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/admin/propiedades" element={<ProtectedRoute><AdminProperties /></ProtectedRoute>} />
-                <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
-                <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
-                <Route path="/admin/configuracion" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+                  {/* ── Admin routes ── */}
+                  <Route path="/admin" element={<AdminRoute />} />
+                  <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/admin/propiedades" element={<ProtectedRoute><AdminProperties /></ProtectedRoute>} />
+                  <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
+                  <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
+                  <Route path="/admin/testimonios" element={<ProtectedRoute><AdminTestimonials /></ProtectedRoute>} />
+                  <Route path="/admin/configuracion" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </ToastProvider>
+                  {/* ── Fallback ── */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ToastProvider>
+            </TestimonialProvider>
           </BlogProvider>
         </LeadProvider>
       </PropertyProvider>

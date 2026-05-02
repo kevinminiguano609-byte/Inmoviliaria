@@ -1,39 +1,50 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { initialLeads } from '@/data/mock';
+import {
+  createContext, useContext, useState, useCallback,
+  useMemo, useEffect, type ReactNode,
+} from 'react';
+import * as leadService from '@/services/leadService';
 import type { Lead } from '@/types';
 
 interface LeadContextType {
   leads: Lead[];
-  addLead: (l: Omit<Lead, 'id' | 'date' | 'status'>) => void;
-  updateLeadStatus: (id: string, status: Lead['status']) => void;
-  deleteLead: (id: string) => void;
+  loading: boolean;
+  addLead: (l: Omit<Lead, 'id' | 'date' | 'status'>) => Promise<void>;
+  updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
+  deleteLead: (id: string) => Promise<void>;
 }
 
 const LeadContext = createContext<LeadContextType | undefined>(undefined);
 
 export function LeadProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addLead = useCallback((l: Omit<Lead, 'id' | 'date' | 'status'>) => {
-    const newLead: Lead = {
-      ...l,
-      id: Date.now().toString(),
-      date: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ''),
-      status: 'nuevo',
-    };
-    setLeads(prev => [newLead, ...prev]);
+  useEffect(() => {
+    leadService.getLeads().then(data => {
+      setLeads(data);
+      setLoading(false);
+    });
   }, []);
 
-  const updateLeadStatus = useCallback((id: string, status: Lead['status']) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+  const addLead = useCallback(async (l: Omit<Lead, 'id' | 'date' | 'status'>) => {
+    const created = await leadService.createLead(l);
+    setLeads(prev => [created, ...prev]);
   }, []);
 
-  const deleteLead = useCallback((id: string) => {
+  const updateLeadStatus = useCallback(async (id: string, status: Lead['status']) => {
+    const updated = await leadService.updateLeadStatus(id, status);
+    setLeads(prev => prev.map(l => l.id === id ? updated : l));
+  }, []);
+
+  const deleteLead = useCallback(async (id: string) => {
+    await leadService.deleteLead(id);
     setLeads(prev => prev.filter(l => l.id !== id));
   }, []);
 
-  const value = useMemo(() => ({ leads, addLead, updateLeadStatus, deleteLead }),
-    [leads, addLead, updateLeadStatus, deleteLead]);
+  const value = useMemo(
+    () => ({ leads, loading, addLead, updateLeadStatus, deleteLead }),
+    [leads, loading, addLead, updateLeadStatus, deleteLead],
+  );
 
   return (
     <LeadContext.Provider value={value}>

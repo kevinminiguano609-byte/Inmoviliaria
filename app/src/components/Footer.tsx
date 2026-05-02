@@ -9,7 +9,7 @@ export default function Footer() {
           <div>
             <Link to="/" className="flex items-center">
               <img
-               src="public/assets/logoCreator_imagetologo_infinity.jpg"
+               src="public/assets/logo_3.png"
                 alt="Logo"
                 className="h-10 w-auto object-contain"
               />

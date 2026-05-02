@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navLinks = [
   { label: 'Inicio', path: '/' },
@@ -13,6 +14,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const isHome = location.pathname === '/';
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function Navbar() {
         <div className="max-w-[1360px] mx-auto px-5 md:px-10 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img
-              src="public/assets/logoCreator_imagetologo_infinity.jpg"
+              src="public/assets/logo_3.png"
               alt="Logo"
               className="h-10 w-auto object-contain"
             />
@@ -63,7 +65,28 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            {/* Admin access — icon button, always visible */}
+            <Link
+              to="/admin"
+              title={isAuthenticated ? 'Ir al panel admin' : 'Iniciar sesión en admin'}
+              className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:scale-105"
+              style={{
+                color: isTransparent ? 'rgba(255,255,255,0.7)' : '#999999',
+                backgroundColor: isTransparent ? 'rgba(255,255,255,0.1)' : '#F5F5F5',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.color = '#E53935';
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#FFF5F5';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.color = isTransparent ? 'rgba(255,255,255,0.7)' : '#999999';
+                (e.currentTarget as HTMLElement).style.backgroundColor = isTransparent ? 'rgba(255,255,255,0.1)' : '#F5F5F5';
+              }}
+            >
+              <LayoutDashboard size={17} />
+            </Link>
+
             <Link
               to="/contacto"
               className="bg-[#E53935] hover:bg-[#C62828] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
@@ -76,6 +99,7 @@ export default function Navbar() {
             className="md:hidden p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             style={{ color: isTransparent ? '#fff' : '#333' }}
+            aria-label="Abrir menú"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -102,6 +126,15 @@ export default function Navbar() {
               onClick={() => setMobileOpen(false)}
             >
               Contactar
+            </Link>
+            {/* Admin link in mobile menu */}
+            <Link
+              to="/admin"
+              className="flex items-center justify-center gap-2 border border-[#E0E0E0] text-[#666666] text-sm font-medium py-3 rounded-lg"
+              onClick={() => setMobileOpen(false)}
+            >
+              <LayoutDashboard size={16} />
+              {isAuthenticated ? 'Panel Admin' : 'Acceso Admin'}
             </Link>
           </div>
         </div>

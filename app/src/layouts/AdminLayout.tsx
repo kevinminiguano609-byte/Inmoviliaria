@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Users, FileText, Settings, LogOut,
-  Bell, Search, Menu
+  Bell, Search, Menu, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-  { label: 'Propiedades', icon: Building2, path: '/admin/propiedades' },
-  { label: 'Leads', icon: Users, path: '/admin/leads' },
-  { label: 'Blog', icon: FileText, path: '/admin/blog' },
-  { label: 'Configuración', icon: Settings, path: '/admin/configuracion' },
+  { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin/dashboard' },
+  { label: 'Propiedades',   icon: Building2,        path: '/admin/propiedades' },
+  { label: 'Leads',         icon: Users,            path: '/admin/leads' },
+  { label: 'Blog',          icon: FileText,         path: '/admin/blog' },
+  { label: 'Testimonios',   icon: MessageSquare,    path: '/admin/testimonios' },
+  { label: 'Configuración', icon: Settings,         path: '/admin/configuracion' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -36,10 +37,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed top-0 left-0 h-full w-[260px] bg-white border-r border-[#E0E0E0] z-[100] transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-6 border-b border-[#E0E0E0]">
           <Link to="/" className="flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 3h12l4 6-10 13L2 9z"/>
-            </svg>
-            <span className="text-lg font-semibold text-[#333333]">LUCERO</span>
+            <img
+               src="public/assets/logoCreator_imagetologo_infinity.jpg"
+                alt="Logo"
+                className="h-10 w-auto object-contain"
+              />
           </Link>
           <p className="text-xs text-[#999] mt-1">Panel de administración</p>
         </div>

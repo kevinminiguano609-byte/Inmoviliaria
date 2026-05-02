@@ -1,33 +1,51 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { properties as initialProperties } from '@/data/mock';
+import {
+  createContext, useContext, useState, useCallback,
+  useMemo, useEffect, type ReactNode,
+} from 'react';
+import * as propertyService from '@/services/propertyService';
 import type { Property } from '@/types';
 
 interface PropertyContextType {
   properties: Property[];
-  addProperty: (p: Property) => void;
-  updateProperty: (p: Property) => void;
-  deleteProperty: (id: string) => void;
+  loading: boolean;
+  addProperty: (p: Omit<Property, 'id' | 'createdAt'>) => Promise<void>;
+  updateProperty: (id: string, data: Partial<Property>) => Promise<void>;
+  deleteProperty: (id: string) => Promise<void>;
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
 export function PropertyProvider({ children }: { children: ReactNode }) {
-  const [properties, setProperties] = useState<Property[]>(initialProperties);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addProperty = useCallback((p: Property) => {
-    setProperties(prev => [...prev, p]);
+  // Load initial data from service
+  useEffect(() => {
+    propertyService.getProperties().then(data => {
+      setProperties(data);
+      setLoading(false);
+    });
   }, []);
 
-  const updateProperty = useCallback((p: Property) => {
-    setProperties(prev => prev.map(x => x.id === p.id ? p : x));
+  const addProperty = useCallback(async (p: Omit<Property, 'id' | 'createdAt'>) => {
+    const created = await propertyService.createProperty(p);
+    setProperties(prev => [created, ...prev]);
   }, []);
 
-  const deleteProperty = useCallback((id: string) => {
+  const updateProperty = useCallback(async (id: string, data: Partial<Property>) => {
+    const updated = await propertyService.updateProperty(id, data);
+    setProperties(prev => prev.map(x => x.id === id ? updated : x));
+  }, []);
+
+  const deleteProperty = useCallback(async (id: string) => {
+    await propertyService.deleteProperty(id);
     setProperties(prev => prev.filter(x => x.id !== id));
   }, []);
 
-  const value = useMemo(() => ({ properties, addProperty, updateProperty, deleteProperty }),
-    [properties, addProperty, updateProperty, deleteProperty]);
+  const value = useMemo(
+    () => ({ properties, loading, addProperty, updateProperty, deleteProperty }),
+    [properties, loading, addProperty, updateProperty, deleteProperty],
+  );
 
   return (
     <PropertyContext.Provider value={value}>

@@ -13,7 +13,7 @@ import PropertyCard from '@/components/PropertyCard';
 import { useProperty } from '@/contexts/PropertyContext';
 import { useLead } from '@/contexts/LeadContext';
 import { useToast } from '@/contexts/ToastContext';
-import { testimonials } from '@/data/mock';
+import { useTestimonial } from '@/contexts/TestimonialContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -261,6 +261,7 @@ function StatsSection() {
 
 /* ─── Testimonials ─── */
 function TestimonialsSection() {
+  const { testimonials } = useTestimonial();
   const [active, setActive] = useState(0);
 
   useEffect(() => {
