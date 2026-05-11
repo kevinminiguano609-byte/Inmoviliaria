@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,11 +26,7 @@ export default function Login() {
       <div className="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-10 md:p-12 w-full max-w-[420px]">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-3">
-            <img
-              src="/assets/logoCreator_imagetologo_infinity.jpg"
-              alt="Infinity Inmobiliaria"
-              className="h-12 w-auto object-contain"
-            />
+            <Logo className="h-12 w-auto object-contain" />
           </div>
           <p className="text-base text-[#666666]">Panel de administraci&oacute;n</p>
         </div>

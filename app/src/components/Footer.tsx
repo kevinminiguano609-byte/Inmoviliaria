@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function Footer() {
   return (
@@ -8,11 +9,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           <div>
             <Link to="/" className="flex items-center">
-              <img
-               src="public/assets/logo_3.png"
-                alt="Logo"
-                className="h-10 w-auto object-contain"
-              />
+              <Logo className="h-10 w-auto object-contain" />
             </Link>
             <p className="text-sm mt-4 max-w-[280px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
               Tu inmobiliaria de confianza en Buenos Aires. Más de 15 años ayudando a familias y empresas a encontrar su lugar ideal.

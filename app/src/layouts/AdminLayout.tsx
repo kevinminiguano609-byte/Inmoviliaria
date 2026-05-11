@@ -5,6 +5,7 @@ import {
   Bell, Search, Menu, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 const menuItems = [
   { label: 'Dashboard',     icon: LayoutDashboard, path: '/admin/dashboard' },
@@ -36,12 +37,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       <aside className={`fixed top-0 left-0 h-full w-[260px] bg-white border-r border-[#E0E0E0] z-[100] transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-6 border-b border-[#E0E0E0]">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-               src="public/assets/logoCreator_imagetologo_infinity.jpg"
-                alt="Logo"
-                className="h-10 w-auto object-contain"
-              />
+          <Link to="/" className="flex items-center">
+            <Logo className="h-10 w-auto object-contain" />
           </Link>
           <p className="text-xs text-[#999] mt-1">Panel de administración</p>
         </div>

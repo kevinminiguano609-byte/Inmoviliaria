@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 const navLinks = [
   { label: 'Inicio', path: '/' },
@@ -41,11 +42,7 @@ export default function Navbar() {
       >
         <div className="max-w-[1360px] mx-auto px-5 md:px-10 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img
-              src="public/assets/logo_3.png"
-              alt="Logo"
-              className="h-10 w-auto object-contain"
-            />
+            <Logo className="h-10 w-auto object-contain" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
