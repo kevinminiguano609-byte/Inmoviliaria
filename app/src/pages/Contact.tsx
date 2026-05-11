@@ -92,16 +92,27 @@ export default function Contact() {
                 ))}
               </div>
 
-              <div className="mt-12">
-                <p className="font-medium text-base text-[#333333] mb-5">Seguinos</p>
-                <div className="flex gap-3">
-                  {['Instagram', 'Facebook', 'LinkedIn', 'YouTube'].map(s => (
-                    <span key={s} className="w-10 h-10 rounded-full bg-[#F5F5F5] flex items-center justify-center text-[#666666] text-xs font-medium hover:bg-[#E53935] hover:text-white hover:scale-105 transition-all cursor-pointer">
-                      {s[0]}
-                    </span>
-                  ))}
-                </div>
-              </div>
+             <div className="mt-12">
+  <p className="font-medium text-base text-[#333333] mb-5">Seguinos</p>
+  <div className="flex gap-3">
+    {[
+      { name: 'Instagram', url: 'https://www.instagram.com/infinity_inmoconst/' },
+      { name: 'Facebook', url: 'https://www.facebook.com/infinity.inmobiliaria.constructora.2025' },
+      { name: 'LinkedIn', url: 'https://linkedin.com/in/tuusuario' },
+      { name: 'Tik Tok', url: 'https://www.tiktok.com/@infinity.inmobili' }
+    ].map(s => (
+      <a
+        key={s.name}
+        href={s.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-10 h-10 rounded-full bg-[#F5F5F5] flex items-center justify-center text-[#666666] text-xs font-medium hover:bg-[#E53935] hover:text-white hover:scale-105 transition-all cursor-pointer"
+      >
+        {s.name[0]}
+      </a>
+    ))}
+  </div>
+</div>
             </ScrollReveal>
 
             {/* Form */}

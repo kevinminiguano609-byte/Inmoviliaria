@@ -58,7 +58,7 @@ export default function Footer() {
               </div>
             </div>
             <div className="flex gap-4 mt-6">
-              {['Instagram', 'Facebook', 'LinkedIn', 'YouTube'].map(social => (
+              {['Instagram', 'Facebook', 'LinkedIn', 'Tik Tok'].map(social => (
                 <span key={social} className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-[#E53935]" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>{social[0]}</span>
                 </span>

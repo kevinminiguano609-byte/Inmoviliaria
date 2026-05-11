@@ -38,12 +38,12 @@ export default function AdminSettings() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Nombre del sitio</label>
-              <input defaultValue="LUCERO"
+              <input defaultValue="Infinity Inmobiliaria - Constructora"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Descripci&oacute;n del sitio</label>
-              <textarea rows={3} defaultValue="Tu inmobiliaria de confianza en Buenos Aires."
+              <textarea rows={3} defaultValue="Tu inmobiliaria de confianza en Riobamba."
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none resize-none" />
             </div>
             <div>
@@ -68,17 +68,17 @@ export default function AdminSettings() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Teléfono</label>
-              <input defaultValue="+54 11 4567-8900"
+              <input defaultValue="+593 990 332 764"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Email</label>
-              <input defaultValue="info@lucero.com"
+              <input defaultValue="Infinity.inmoconstruct@gmail.com"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Direcci&oacute;n</label>
-              <input defaultValue="Av. Santa Fe 3200, Palermo, CABA"
+              <input defaultValue="Riobamba Av. Tarqui y Orozco"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
             <div>
@@ -88,12 +88,12 @@ export default function AdminSettings() {
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Número de WhatsApp</label>
-              <input defaultValue="+54 9 11 4567-8900"
+              <input defaultValue="+593 990 332 764"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Email de notificaciones</label>
-              <input defaultValue="admin@lucero.com"
+              <input defaultValue="Infinity.inmoconstruct@gmail.com"
                 className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
             </div>
           </div>
@@ -104,7 +104,7 @@ export default function AdminSettings() {
             {['Instagram', 'Facebook', 'LinkedIn', 'YouTube'].map(social => (
               <div key={social}>
                 <label className="text-sm font-medium text-[#333333] mb-1 block">{social}</label>
-                <input placeholder={`https://${social.toLowerCase()}.com/lucero`}
+                <input placeholder={`https://${social.toLowerCase()}.com/Infinity`}
                   className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none placeholder:text-[#999]" />
               </div>
             ))}

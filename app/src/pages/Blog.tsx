@@ -42,9 +42,9 @@ export default function Blog() {
         <div className="max-w-[1360px] mx-auto px-5 md:px-10 py-12">
           <ScrollReveal>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div className="aspect-video rounded-xl overflow-hidden">
-                <img src={articles[0].image} alt={articles[0].title} className="w-full h-full object-cover" />
-              </div>
+              <Link to={`/blog/${articles[0].slug}`} className="aspect-video rounded-xl overflow-hidden block">
+                <img src={articles[0].image} alt={articles[0].title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              </Link>
               <div>
                 <span className="inline-block bg-[#FFF5F5] text-[#E53935] text-xs font-medium px-3 py-1.5 rounded-full mb-3">
                   {articles[0].category}
@@ -58,9 +58,12 @@ export default function Blog() {
                 <p className="text-sm text-[#999999] mb-4">
                   {articles[0].date} &middot; {articles[0].readTime}
                 </p>
-                <span className="text-[#E53935] font-medium text-base hover:underline cursor-pointer">
+                <Link
+                  to={`/blog/${articles[0].slug}`}
+                  className="text-[#E53935] font-medium text-base hover:underline"
+                >
                   Leer art&iacute;culo &rarr;
-                </span>
+                </Link>
               </div>
             </div>
           </ScrollReveal>
@@ -91,7 +94,11 @@ export default function Blog() {
         <ScrollReveal stagger={0.12}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {paginated.map(article => (
-              <div key={article.id} className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)] transition-shadow duration-300 group">
+              <Link
+                key={article.id}
+                to={`/blog/${article.slug}`}
+                className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)] transition-shadow duration-300 group"
+              >
                 <div className="aspect-video overflow-hidden">
                   <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
@@ -105,7 +112,7 @@ export default function Blog() {
                   <p className="text-sm text-[#666666] mb-3 line-clamp-2">{article.excerpt}</p>
                   <p className="text-xs text-[#999999]">{article.date} &middot; {article.readTime}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </ScrollReveal>

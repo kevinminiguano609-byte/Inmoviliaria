@@ -11,6 +11,7 @@ import Home from '@/pages/Home';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
 import Blog from '@/pages/Blog';
+import BlogPost from '@/pages/BlogPost';
 import Contact from '@/pages/Contact';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
@@ -46,6 +47,7 @@ export default function App() {
                   <Route path="/propiedades" element={<Properties />} />
                   <Route path="/propiedades/:slug" element={<PropertyDetail />} />
                   <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
                   <Route path="/contacto" element={<Contact />} />
 
                   {/* ── Admin routes ── */}
