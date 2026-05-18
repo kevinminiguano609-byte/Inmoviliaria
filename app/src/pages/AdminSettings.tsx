@@ -1,16 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { useToast } from '@/contexts/ToastContext';
+import { useSettings } from '@/hooks/useSettings';
 
 const tabs = ['General', 'Contacto', 'Redes sociales', 'Usuarios'];
 
 export default function AdminSettings() {
   const { showToast } = useToast();
+  const { settings, loading, save } = useSettings();
   const [activeTab, setActiveTab] = useState('General');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    showToast('Cambios guardados correctamente', 'success');
+  // Estado local del formulario
+  const [form, setForm] = useState({
+    // General
+    site_name:           '',
+    site_tagline:        '',
+    currency_default:    'USD',
+    language:            'es',
+    // Contacto
+    contact_phone:       '',
+    contact_email:       '',
+    contact_address:     '',
+    contact_hours:       '',
+    whatsapp_number:     '',
+    notification_email:  '',
+    // Redes
+    social_instagram:    '',
+    social_facebook:     '',
+    social_linkedin:     '',
+    social_youtube:      '',
+    social_tiktok:       '',
+  });
+
+  // Cargar settings en el formulario cuando llegan de Supabase
+  useEffect(() => {
+    if (!settings) return;
+    setForm({
+      site_name:          String(settings.site_name          ?? ''),
+      site_tagline:       String(settings.site_tagline       ?? ''),
+      currency_default:   String(settings.currency_default   ?? 'USD'),
+      language:           String(settings.language           ?? 'es'),
+      contact_phone:      String(settings.contact_phone      ?? ''),
+      contact_email:      String(settings.contact_email      ?? ''),
+      contact_address:    String(settings.contact_address    ?? ''),
+      contact_hours:      String(settings.contact_hours      ?? ''),
+      whatsapp_number:    String(settings.whatsapp_number    ?? ''),
+      notification_email: String(settings.notification_email ?? ''),
+      social_instagram:   String(settings.social_instagram   ?? ''),
+      social_facebook:    String(settings.social_facebook    ?? ''),
+      social_linkedin:    String(settings.social_linkedin    ?? ''),
+      social_youtube:     String(settings.social_youtube     ?? ''),
+      social_tiktok:      String(settings.social_tiktok      ?? ''),
+    });
+  }, [settings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await save(form as Record<string, string>);
+      showToast('Cambios guardados correctamente', 'success');
+    } catch {
+      showToast('Error al guardar los cambios', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const inputCls = "w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none transition-colors";
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-2 border-[#E53935] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -38,26 +105,39 @@ export default function AdminSettings() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Nombre del sitio</label>
-              <input defaultValue="Infinity Inmobiliaria - Constructora"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
+              <input
+                value={form.site_name}
+                onChange={e => setForm({ ...form, site_name: e.target.value })}
+                className={inputCls}
+              />
             </div>
             <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Descripci&oacute;n del sitio</label>
-              <textarea rows={3} defaultValue="Tu inmobiliaria de confianza en Riobamba."
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none resize-none" />
+              <label className="text-sm font-medium text-[#333333] mb-1 block">Descripci&oacute;n / Tagline</label>
+              <textarea
+                rows={3}
+                value={form.site_tagline}
+                onChange={e => setForm({ ...form, site_tagline: e.target.value })}
+                className={`${inputCls} resize-none`}
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Moneda por defecto</label>
-              <select defaultValue="USD"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none text-[#333333]">
+              <select
+                value={form.currency_default}
+                onChange={e => setForm({ ...form, currency_default: e.target.value })}
+                className={inputCls}
+              >
                 <option value="USD">USD</option>
                 <option value="ARS">ARS</option>
               </select>
             </div>
             <div>
               <label className="text-sm font-medium text-[#333333] mb-1 block">Idioma</label>
-              <select defaultValue="es"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none text-[#333333]">
+              <select
+                value={form.language}
+                onChange={e => setForm({ ...form, language: e.target.value })}
+                className={inputCls}
+              >
                 <option value="es">Español</option>
               </select>
             </div>
@@ -66,46 +146,44 @@ export default function AdminSettings() {
 
         {activeTab === 'Contacto' && (
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Teléfono</label>
-              <input defaultValue="+593 990 332 764"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Email</label>
-              <input defaultValue="Infinity.inmoconstruct@gmail.com"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Direcci&oacute;n</label>
-              <input defaultValue="Riobamba Av. Tarqui y Orozco"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Horario de atenci&oacute;n</label>
-              <input defaultValue="Lun a Vie: 9:00 - 18:00 | Sáb: 10:00 - 14:00"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Número de WhatsApp</label>
-              <input defaultValue="+593 990 332 764"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#333333] mb-1 block">Email de notificaciones</label>
-              <input defaultValue="Infinity.inmoconstruct@gmail.com"
-                className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none" />
-            </div>
+            {[
+              { label: 'Teléfono',              key: 'contact_phone',      placeholder: '+593 990 332 764' },
+              { label: 'Email',                 key: 'contact_email',      placeholder: 'info@empresa.com' },
+              { label: 'Dirección',             key: 'contact_address',    placeholder: 'Av. Principal 123' },
+              { label: 'Horario de atención',   key: 'contact_hours',      placeholder: 'Lun a Vie: 9:00 - 18:00' },
+              { label: 'Número de WhatsApp',    key: 'whatsapp_number',    placeholder: '593990332764 (sin +)' },
+              { label: 'Email de notificaciones', key: 'notification_email', placeholder: 'notif@empresa.com' },
+            ].map(({ label, key, placeholder }) => (
+              <div key={key}>
+                <label className="text-sm font-medium text-[#333333] mb-1 block">{label}</label>
+                <input
+                  value={form[key as keyof typeof form]}
+                  onChange={e => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                  className={inputCls}
+                />
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'Redes sociales' && (
           <div className="space-y-4">
-            {['Instagram', 'Facebook', 'LinkedIn', 'YouTube'].map(social => (
-              <div key={social}>
-                <label className="text-sm font-medium text-[#333333] mb-1 block">{social}</label>
-                <input placeholder={`https://${social.toLowerCase()}.com/Infinity`}
-                  className="w-full border border-[#E0E0E0] focus:border-[#E53935] rounded-lg px-4 py-3 text-sm outline-none placeholder:text-[#999]" />
+            {[
+              { label: 'Instagram', key: 'social_instagram', placeholder: 'https://instagram.com/...' },
+              { label: 'Facebook',  key: 'social_facebook',  placeholder: 'https://facebook.com/...' },
+              { label: 'LinkedIn',  key: 'social_linkedin',  placeholder: 'https://linkedin.com/...' },
+              { label: 'TikTok',    key: 'social_tiktok',    placeholder: 'https://tiktok.com/...' },
+              { label: 'YouTube',   key: 'social_youtube',   placeholder: 'https://youtube.com/...' },
+            ].map(({ label, key, placeholder }) => (
+              <div key={key}>
+                <label className="text-sm font-medium text-[#333333] mb-1 block">{label}</label>
+                <input
+                  value={form[key as keyof typeof form]}
+                  onChange={e => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                  className={inputCls}
+                />
               </div>
             ))}
           </div>
@@ -113,41 +191,34 @@ export default function AdminSettings() {
 
         {activeTab === 'Usuarios' && (
           <div>
-            <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#F5F5F5]">
-                    {['Nombre', 'Email', 'Rol', 'Estado', 'Acciones'].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-[#333333] uppercase tracking-wider px-6 py-3">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-[#E0E0E0]">
-                    <td className="px-6 py-4 text-sm text-[#333333] font-medium">Admin</td>
-                    <td className="px-6 py-4 text-sm text-[#666666]">admin@lucero.com</td>
-                    <td className="px-6 py-4 text-sm text-[#666666]">Administrador</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[#F0FFF0] text-[#4CAF50]">Activo</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button className="w-8 h-8 rounded-lg flex items-center justify-center text-[#666666] hover:bg-[#F5F5F5] transition-colors">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <p className="text-sm text-[#666666] mb-4">
+              Gestión de usuarios disponible en Supabase Dashboard → Authentication → Users.
+            </p>
+            <a
+              href="https://supabase.com/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#E53935] text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-[#C62828] transition-colors"
+            >
+              Abrir Supabase Dashboard
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+              </svg>
+            </a>
           </div>
         )}
 
-        <div className="mt-8 flex justify-end">
-          <button onClick={handleSave}
-            className="bg-[#E53935] hover:bg-[#C62828] text-white font-medium text-sm px-8 py-3 rounded-lg transition-all hover:scale-[1.02]">
-            Guardar cambios
-          </button>
-        </div>
+        {activeTab !== 'Usuarios' && (
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#E53935] hover:bg-[#C62828] text-white font-medium text-sm px-8 py-3 rounded-lg transition-all hover:scale-[1.02] disabled:opacity-50"
+            >
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

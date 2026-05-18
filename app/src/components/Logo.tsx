@@ -7,7 +7,7 @@
  */
 
 /** Ruta pública del logo (carpeta public/assets, servida por Vite) */
-const LOGO_SRC = '/assets/Logo_Infinity.png';
+const LOGO_SRC = '/assets/logoCreator_imagetologo_Infinity.jpg';
 const LOGO_ALT = 'Infinity Inmobiliaria - Constructora';
 
 interface LogoProps {

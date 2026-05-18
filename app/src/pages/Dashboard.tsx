@@ -1,18 +1,7 @@
-import { Building2, Users, CheckCircle, Eye, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Building2, Users, MessageSquare, Eye } from 'lucide-react';
 import AdminLayout from '@/layouts/AdminLayout';
-import { useProperty } from '@/contexts/PropertyContext';
-import { useLead } from '@/contexts/LeadContext';
-import { useBlog } from '@/contexts/BlogContext';
-
-const leadChartData = [
-  { month: 'Ago', value: 12 },
-  { month: 'Sep', value: 18 },
-  { month: 'Oct', value: 15 },
-  { month: 'Nov', value: 22 },
-  { month: 'Dic', value: 20 },
-  { month: 'Ene', value: 24 },
-];
+import { useDashboard } from '@/hooks/useDashboard';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
   nuevo:       { bg: '#FFF5F5', text: '#E53935' },
@@ -23,15 +12,13 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function Dashboard() {
-  const { properties } = useProperty();
-  const { leads } = useLead();
-  const { articles } = useBlog();
+  const { stats, loading } = useDashboard();
 
-  const stats = [
+  const statCards = [
     {
       icon: Building2,
       label: 'Total propiedades',
-      value: properties.length,
+      value: loading ? '...' : (stats?.total_properties ?? 0),
       trend: '+12%',
       positive: true,
       href: '/admin/propiedades',
@@ -39,7 +26,7 @@ export default function Dashboard() {
     {
       icon: Users,
       label: 'Leads nuevos',
-      value: leads.filter(l => l.status === 'nuevo').length,
+      value: loading ? '...' : (stats?.new_leads ?? 0),
       trend: '+8%',
       positive: true,
       href: '/admin/leads',
@@ -47,22 +34,37 @@ export default function Dashboard() {
     {
       icon: MessageSquare,
       label: 'Artículos publicados',
-      value: articles.filter(a => a.status === 'publicado').length,
+      value: loading ? '...' : (stats?.published_articles ?? 0),
       trend: '+5%',
       positive: true,
       href: '/admin/blog',
     },
     {
       icon: Eye,
-      label: 'Visitas web',
-      value: '3,240',
+      label: 'Leads este mes',
+      value: loading ? '...' : (stats?.leads_this_month ?? 0),
       trend: '+15%',
       positive: true,
       href: null,
     },
   ];
 
-  const maxValue = Math.max(...leadChartData.map(d => d.value));
+  // Chart data: leads por mes (últimos 6 meses)
+  const chartData = (stats?.leads_by_month as Array<{ month: string; value: number }> | undefined) ?? [
+    { month: 'Ago', value: 0 },
+    { month: 'Sep', value: 0 },
+    { month: 'Oct', value: 0 },
+    { month: 'Nov', value: 0 },
+    { month: 'Dic', value: 0 },
+    { month: 'Ene', value: 0 },
+  ];
+  const maxValue = Math.max(...chartData.map(d => d.value), 1);
+
+  // Recent leads
+  const recentLeads = (stats?.recent_leads as Array<{
+    id: string; name: string; email: string;
+    subject: string; status: string; created_at: string;
+  }> | undefined) ?? [];
 
   return (
     <AdminLayout>
@@ -70,7 +72,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {stats.map((s, i) => {
+        {statCards.map((s, i) => {
           const card = (
             <div className="bg-white rounded-xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow">
               <div className="w-10 h-10 rounded-full bg-[#FFF5F5] flex items-center justify-center mb-4">
@@ -78,11 +80,9 @@ export default function Dashboard() {
               </div>
               <p className="text-[28px] font-semibold text-[#333333]">{s.value}</p>
               <p className="text-sm text-[#666666] mb-1">{s.label}</p>
-              <span
-                className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
-                  s.positive ? 'bg-[#F0FFF0] text-[#4CAF50]' : 'bg-[#FFF5F5] text-[#F44336]'
-                }`}
-              >
+              <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
+                s.positive ? 'bg-[#F0FFF0] text-[#4CAF50]' : 'bg-[#FFF5F5] text-[#F44336]'
+              }`}>
                 {s.trend} vs mes pasado
               </span>
             </div>
@@ -99,8 +99,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
         {[
           { label: 'Nueva propiedad', href: '/admin/propiedades', color: '#E53935' },
-          { label: 'Nuevo artículo', href: '/admin/blog', color: '#2196F3' },
-          { label: 'Ver leads', href: '/admin/leads', color: '#4CAF50' },
+          { label: 'Nuevo artículo',  href: '/admin/blog',        color: '#2196F3' },
+          { label: 'Ver leads',       href: '/admin/leads',       color: '#4CAF50' },
         ].map(a => (
           <Link
             key={a.href}
@@ -113,17 +113,17 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Chart */}
+      {/* Chart: Leads por mes */}
       <div className="bg-white rounded-xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-8">
         <h3 className="font-medium text-base text-[#333333] mb-6">Leads por mes</h3>
         <div className="flex items-end gap-4 md:gap-8 h-[240px] px-4">
-          {leadChartData.map((d, i) => (
+          {chartData.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-2">
               <div className="w-full flex flex-col items-center">
                 <span className="text-xs text-[#666666] mb-1">{d.value}</span>
                 <div
                   className="w-full max-w-[60px] bg-[#E53935] rounded-t-lg transition-all duration-500"
-                  style={{ height: `${(d.value / maxValue) * 180}px` }}
+                  style={{ height: `${(d.value / maxValue) * 180}px`, minHeight: d.value > 0 ? '4px' : '0' }}
                 />
               </div>
               <span className="text-xs text-[#666666]">{d.month}</span>
@@ -136,10 +136,7 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <div className="p-6 flex items-center justify-between border-b border-[#E0E0E0]">
           <h3 className="font-medium text-base text-[#333333]">Leads recientes</h3>
-          <Link
-            to="/admin/leads"
-            className="text-sm text-[#E53935] hover:underline font-medium"
-          >
+          <Link to="/admin/leads" className="text-sm text-[#E53935] hover:underline font-medium">
             Ver todos
           </Link>
         </div>
@@ -148,38 +145,48 @@ export default function Dashboard() {
             <thead>
               <tr className="bg-[#F5F5F5]">
                 {['Nombre', 'Email', 'Asunto', 'Fecha', 'Estado'].map(h => (
-                  <th
-                    key={h}
-                    className="text-left text-xs font-semibold text-[#333333] uppercase tracking-wider px-6 py-3"
-                  >
+                  <th key={h} className="text-left text-xs font-semibold text-[#333333] uppercase tracking-wider px-6 py-3">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {leads.slice(0, 5).map(lead => (
-                <tr
-                  key={lead.id}
-                  className="border-b border-[#E0E0E0] hover:bg-[#FAFAFA] transition-colors"
-                >
-                  <td className="px-6 py-4 text-sm text-[#333333] font-medium">{lead.name}</td>
-                  <td className="px-6 py-4 text-sm text-[#666666]">{lead.email}</td>
-                  <td className="px-6 py-4 text-sm text-[#666666]">{lead.subject}</td>
-                  <td className="px-6 py-4 text-sm text-[#999999]">{lead.date}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className="inline-block px-3 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: statusColors[lead.status]?.bg ?? '#F5F5F5',
-                        color: statusColors[lead.status]?.text ?? '#666666',
-                      }}
-                    >
-                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                    </span>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[#999999]">
+                    Cargando...
                   </td>
                 </tr>
-              ))}
+              ) : recentLeads.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[#999999]">
+                    No hay leads todavía.
+                  </td>
+                </tr>
+              ) : (
+                recentLeads.map(lead => (
+                  <tr key={lead.id} className="border-b border-[#E0E0E0] hover:bg-[#FAFAFA] transition-colors">
+                    <td className="px-6 py-4 text-sm text-[#333333] font-medium">{lead.name}</td>
+                    <td className="px-6 py-4 text-sm text-[#666666]">{lead.email}</td>
+                    <td className="px-6 py-4 text-sm text-[#666666]">{lead.subject}</td>
+                    <td className="px-6 py-4 text-sm text-[#999999]">
+                      {new Date(lead.created_at).toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: statusColors[lead.status]?.bg ?? '#F5F5F5',
+                          color:           statusColors[lead.status]?.text ?? '#666666',
+                        }}
+                      >
+                        {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,38 +1,68 @@
 /**
- * Testimonial Service
- *
- * Mock implementation that mirrors the Supabase client API.
- * To connect to Supabase, replace each function body with the
- * corresponding supabase.from('testimonials')... call.
+ * Testimonial Service — Supabase implementation
  */
 
-import { testimonials as mockTestimonials } from '@/data/mock';
-import type { Testimonial } from '@/types';
+import { supabase } from '@/lib/supabase';
+import type { TestimonialRow, TestimonialInsert, TestimonialUpdate } from '@/types/supabase';
 
-let store: Testimonial[] = [...mockTestimonials];
+function handleError(error: { message: string } | null, context: string): void {
+  if (error) throw new Error(`[testimonialService] ${context}: ${error.message}`);
+}
 
-export async function getTestimonials(): Promise<Testimonial[]> {
-  return [...store];
+export async function getTestimonials(): Promise<TestimonialRow[]> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order');
+
+  handleError(error, 'getTestimonials');
+  return data ?? [];
+}
+
+export async function getAllTestimonials(): Promise<TestimonialRow[]> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .order('sort_order');
+
+  handleError(error, 'getAllTestimonials');
+  return data ?? [];
 }
 
 export async function createTestimonial(
-  data: Omit<Testimonial, 'id'>
-): Promise<Testimonial> {
-  const newItem: Testimonial = { ...data, id: Date.now().toString() };
-  store = [...store, newItem];
-  return newItem;
+  payload: TestimonialInsert
+): Promise<TestimonialRow> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .insert(payload)
+    .select()
+    .single();
+
+  handleError(error, 'createTestimonial');
+  return data!;
 }
 
 export async function updateTestimonial(
   id: string,
-  data: Partial<Testimonial>
-): Promise<Testimonial> {
-  const idx = store.findIndex(t => t.id === id);
-  if (idx === -1) throw new Error(`Testimonial ${id} not found`);
-  store[idx] = { ...store[idx], ...data };
-  return store[idx];
+  payload: TestimonialUpdate
+): Promise<TestimonialRow> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  handleError(error, 'updateTestimonial');
+  return data!;
 }
 
 export async function deleteTestimonial(id: string): Promise<void> {
-  store = store.filter(t => t.id !== id);
+  const { error } = await supabase
+    .from('testimonials')
+    .delete()
+    .eq('id', id);
+
+  handleError(error, 'deleteTestimonial');
 }

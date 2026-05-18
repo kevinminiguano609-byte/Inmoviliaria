@@ -1,49 +1,76 @@
+/**
+ * LeadContext — conectado a Supabase
+ */
+
 import {
   createContext, useContext, useState, useCallback,
   useMemo, useEffect, type ReactNode,
 } from 'react';
-import * as leadService from '@/services/leadService';
-import type { Lead } from '@/types';
+import {
+  getLeads,
+  createLead,
+  updateLeadStatus,
+  deleteLead,
+} from '@/services/leadService';
+import type { LeadRow, LeadInsert, LeadStatus } from '@/types/supabase';
 
 interface LeadContextType {
-  leads: Lead[];
-  loading: boolean;
-  addLead: (l: Omit<Lead, 'id' | 'date' | 'status'>) => Promise<void>;
-  updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
-  deleteLead: (id: string) => Promise<void>;
+  leads:            LeadRow[];
+  loading:          boolean;
+  error:            string | null;
+  addLead:          (l: Omit<LeadInsert, 'status'>) => Promise<void>;
+  updateLeadStatus: (id: string, status: LeadStatus) => Promise<void>;
+  deleteLead:       (id: string) => Promise<void>;
+  refresh:          () => void;
 }
 
 const LeadContext = createContext<LeadContextType | undefined>(undefined);
 
 export function LeadProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads,   setLeads]   = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+  const [tick,    setTick]    = useState(0);
 
   useEffect(() => {
-    leadService.getLeads().then(data => {
-      setLeads(data);
-      setLoading(false);
-    });
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const addLead = useCallback(async (l: Omit<Lead, 'id' | 'date' | 'status'>) => {
-    const created = await leadService.createLead(l);
+    getLeads()
+      .then(data => { if (!cancelled) setLeads(data); })
+      .catch(e  => { if (!cancelled) setError((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  const addLead = useCallback(async (l: Omit<LeadInsert, 'status'>) => {
+    const created = await createLead(l);
     setLeads(prev => [created, ...prev]);
   }, []);
 
-  const updateLeadStatus = useCallback(async (id: string, status: Lead['status']) => {
-    const updated = await leadService.updateLeadStatus(id, status);
+  const updateStatus = useCallback(async (id: string, status: LeadStatus) => {
+    const updated = await updateLeadStatus(id, status);
     setLeads(prev => prev.map(l => l.id === id ? updated : l));
   }, []);
 
-  const deleteLead = useCallback(async (id: string) => {
-    await leadService.deleteLead(id);
+  const removeLead = useCallback(async (id: string) => {
+    await deleteLead(id);
     setLeads(prev => prev.filter(l => l.id !== id));
   }, []);
 
+  const refresh = useCallback(() => setTick(t => t + 1), []);
+
   const value = useMemo(
-    () => ({ leads, loading, addLead, updateLeadStatus, deleteLead }),
-    [leads, loading, addLead, updateLeadStatus, deleteLead],
+    () => ({
+      leads, loading, error,
+      addLead,
+      updateLeadStatus: updateStatus,
+      deleteLead: removeLead,
+      refresh,
+    }),
+    [leads, loading, error, addLead, updateStatus, removeLead, refresh],
   );
 
   return (

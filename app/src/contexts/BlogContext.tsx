@@ -1,49 +1,76 @@
+/**
+ * BlogContext — conectado a Supabase
+ */
+
 import {
   createContext, useContext, useState, useCallback,
   useMemo, useEffect, type ReactNode,
 } from 'react';
-import * as articleService from '@/services/articleService';
-import type { Article } from '@/types';
+import {
+  getArticles,
+  createArticle,
+  updateArticle,
+  deleteArticle,
+} from '@/services/articleService';
+import type { BlogArticleRow, BlogArticleInsert, BlogArticleUpdate } from '@/types/supabase';
 
 interface BlogContextType {
-  articles: Article[];
-  loading: boolean;
-  addArticle: (a: Omit<Article, 'id' | 'date' | 'author'>) => Promise<void>;
-  updateArticle: (id: string, data: Partial<Article>) => Promise<void>;
+  articles:      BlogArticleRow[];
+  loading:       boolean;
+  error:         string | null;
+  addArticle:    (a: BlogArticleInsert) => Promise<void>;
+  updateArticle: (id: string, data: BlogArticleUpdate) => Promise<void>;
   deleteArticle: (id: string) => Promise<void>;
+  refresh:       () => void;
 }
 
 const BlogContext = createContext<BlogContextType | undefined>(undefined);
 
 export function BlogProvider({ children }: { children: ReactNode }) {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [articles, setArticles] = useState<BlogArticleRow[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
+  const [tick,     setTick]     = useState(0);
 
   useEffect(() => {
-    articleService.getArticles().then(data => {
-      setArticles(data);
-      setLoading(false);
-    });
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const addArticle = useCallback(async (a: Omit<Article, 'id' | 'date' | 'author'>) => {
-    const created = await articleService.createArticle(a);
+    getArticles()
+      .then(data => { if (!cancelled) setArticles(data); })
+      .catch(e  => { if (!cancelled) setError((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  const addArticle = useCallback(async (a: BlogArticleInsert) => {
+    const created = await createArticle(a);
     setArticles(prev => [created, ...prev]);
   }, []);
 
-  const updateArticle = useCallback(async (id: string, data: Partial<Article>) => {
-    const updated = await articleService.updateArticle(id, data);
+  const updateArticleFn = useCallback(async (id: string, data: BlogArticleUpdate) => {
+    const updated = await updateArticle(id, data);
     setArticles(prev => prev.map(x => x.id === id ? updated : x));
   }, []);
 
-  const deleteArticle = useCallback(async (id: string) => {
-    await articleService.deleteArticle(id);
+  const deleteArticleFn = useCallback(async (id: string) => {
+    await deleteArticle(id);
     setArticles(prev => prev.filter(x => x.id !== id));
   }, []);
 
+  const refresh = useCallback(() => setTick(t => t + 1), []);
+
   const value = useMemo(
-    () => ({ articles, loading, addArticle, updateArticle, deleteArticle }),
-    [articles, loading, addArticle, updateArticle, deleteArticle],
+    () => ({
+      articles, loading, error,
+      addArticle,
+      updateArticle: updateArticleFn,
+      deleteArticle: deleteArticleFn,
+      refresh,
+    }),
+    [articles, loading, error, addArticle, updateArticleFn, deleteArticleFn, refresh],
   );
 
   return (

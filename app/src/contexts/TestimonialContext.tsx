@@ -1,49 +1,76 @@
+/**
+ * TestimonialContext — conectado a Supabase
+ */
+
 import {
   createContext, useContext, useState, useCallback,
   useMemo, useEffect, type ReactNode,
 } from 'react';
-import * as testimonialService from '@/services/testimonialService';
-import type { Testimonial } from '@/types';
+import {
+  getTestimonials,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+} from '@/services/testimonialService';
+import type { TestimonialRow, TestimonialInsert, TestimonialUpdate } from '@/types/supabase';
 
 interface TestimonialContextType {
-  testimonials: Testimonial[];
-  loading: boolean;
-  addTestimonial: (t: Omit<Testimonial, 'id'>) => Promise<void>;
-  updateTestimonial: (id: string, data: Partial<Testimonial>) => Promise<void>;
+  testimonials:      TestimonialRow[];
+  loading:           boolean;
+  error:             string | null;
+  addTestimonial:    (t: TestimonialInsert) => Promise<void>;
+  updateTestimonial: (id: string, data: TestimonialUpdate) => Promise<void>;
   deleteTestimonial: (id: string) => Promise<void>;
+  refresh:           () => void;
 }
 
 const TestimonialContext = createContext<TestimonialContextType | undefined>(undefined);
 
 export function TestimonialProvider({ children }: { children: ReactNode }) {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [testimonials, setTestimonials] = useState<TestimonialRow[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState<string | null>(null);
+  const [tick,         setTick]         = useState(0);
 
   useEffect(() => {
-    testimonialService.getTestimonials().then(data => {
-      setTestimonials(data);
-      setLoading(false);
-    });
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const addTestimonial = useCallback(async (t: Omit<Testimonial, 'id'>) => {
-    const created = await testimonialService.createTestimonial(t);
+    getTestimonials()
+      .then(data => { if (!cancelled) setTestimonials(data); })
+      .catch(e  => { if (!cancelled) setError((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  const addTestimonial = useCallback(async (t: TestimonialInsert) => {
+    const created = await createTestimonial(t);
     setTestimonials(prev => [...prev, created]);
   }, []);
 
-  const updateTestimonial = useCallback(async (id: string, data: Partial<Testimonial>) => {
-    const updated = await testimonialService.updateTestimonial(id, data);
+  const updateTestimonialFn = useCallback(async (id: string, data: TestimonialUpdate) => {
+    const updated = await updateTestimonial(id, data);
     setTestimonials(prev => prev.map(x => x.id === id ? updated : x));
   }, []);
 
-  const deleteTestimonial = useCallback(async (id: string) => {
-    await testimonialService.deleteTestimonial(id);
+  const deleteTestimonialFn = useCallback(async (id: string) => {
+    await deleteTestimonial(id);
     setTestimonials(prev => prev.filter(x => x.id !== id));
   }, []);
 
+  const refresh = useCallback(() => setTick(t => t + 1), []);
+
   const value = useMemo(
-    () => ({ testimonials, loading, addTestimonial, updateTestimonial, deleteTestimonial }),
-    [testimonials, loading, addTestimonial, updateTestimonial, deleteTestimonial],
+    () => ({
+      testimonials, loading, error,
+      addTestimonial,
+      updateTestimonial: updateTestimonialFn,
+      deleteTestimonial: deleteTestimonialFn,
+      refresh,
+    }),
+    [testimonials, loading, error, addTestimonial, updateTestimonialFn, deleteTestimonialFn, refresh],
   );
 
   return (

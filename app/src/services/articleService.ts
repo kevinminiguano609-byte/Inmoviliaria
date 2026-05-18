@@ -1,55 +1,109 @@
 /**
- * Article Service
- *
- * Mock implementation that mirrors the Supabase client API.
- * To connect to Supabase, replace each function body with the
- * corresponding supabase.from('articles')... call.
+ * Article Service — Supabase implementation
  */
 
-import { articles as mockArticles } from '@/data/mock';
-import type { Article } from '@/types';
+import { supabase } from '@/lib/supabase';
+import type { BlogArticleRow, BlogArticleInsert, BlogArticleUpdate } from '@/types/supabase';
 
-let store: Article[] = [...mockArticles];
-
-export async function getArticles(): Promise<Article[]> {
-  return [...store];
+function handleError(error: { message: string } | null, context: string): void {
+  if (error) throw new Error(`[articleService] ${context}: ${error.message}`);
 }
 
-export async function getArticleById(id: string): Promise<Article | null> {
-  return store.find(a => a.id === id) ?? null;
+// ─── Queries ─────────────────────────────────────────────────
+
+export async function getArticles(): Promise<BlogArticleRow[]> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .select('*')
+    .eq('status', 'publicado')
+    .order('published_at', { ascending: false });
+
+  handleError(error, 'getArticles');
+  return data ?? [];
 }
 
-export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  return store.find(a => a.slug === slug) ?? null;
+/** Admin: get all articles regardless of status */
+export async function getAllArticles(): Promise<BlogArticleRow[]> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  handleError(error, 'getAllArticles');
+  return data ?? [];
 }
+
+export async function getArticleById(id: string): Promise<BlogArticleRow | null> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error?.code === 'PGRST116') return null;
+  handleError(error, 'getArticleById');
+  return data;
+}
+
+export async function getArticleBySlug(slug: string): Promise<BlogArticleRow | null> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (error?.code === 'PGRST116') return null;
+  handleError(error, 'getArticleBySlug');
+  return data;
+}
+
+export async function getArticlesByCategory(category: string): Promise<BlogArticleRow[]> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .select('*')
+    .eq('status', 'publicado')
+    .eq('category', category)
+    .order('published_at', { ascending: false });
+
+  handleError(error, 'getArticlesByCategory');
+  return data ?? [];
+}
+
+// ─── Mutations ───────────────────────────────────────────────
 
 export async function createArticle(
-  data: Omit<Article, 'id' | 'date' | 'author'>
-): Promise<Article> {
-  const newArticle: Article = {
-    ...data,
-    id: Date.now().toString(),
-    author: 'Admin',
-    date: new Date().toLocaleDateString('es-AR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }),
-  };
-  store = [newArticle, ...store];
-  return newArticle;
+  payload: BlogArticleInsert
+): Promise<BlogArticleRow> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .insert(payload)
+    .select()
+    .single();
+
+  handleError(error, 'createArticle');
+  return data!;
 }
 
 export async function updateArticle(
   id: string,
-  data: Partial<Article>
-): Promise<Article> {
-  const idx = store.findIndex(a => a.id === id);
-  if (idx === -1) throw new Error(`Article ${id} not found`);
-  store[idx] = { ...store[idx], ...data };
-  return store[idx];
+  payload: BlogArticleUpdate
+): Promise<BlogArticleRow> {
+  const { data, error } = await supabase
+    .from('blog_articles')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  handleError(error, 'updateArticle');
+  return data!;
 }
 
 export async function deleteArticle(id: string): Promise<void> {
-  store = store.filter(a => a.id !== id);
+  const { error } = await supabase
+    .from('blog_articles')
+    .delete()
+    .eq('id', id);
+
+  handleError(error, 'deleteArticle');
 }
