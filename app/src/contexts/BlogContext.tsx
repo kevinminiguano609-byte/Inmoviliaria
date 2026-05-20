@@ -1,5 +1,11 @@
 /**
- * BlogContext — conectado a Supabase
+ * BlogContext
+ *
+ * Devuelve `Article[]` (tipo legacy) para que Blog, BlogPost y AdminBlog
+ * funcionen sin cambios en las páginas públicas.
+ *
+ * Internamente usa BlogArticleRow de Supabase y aplica el adaptador.
+ * El admin recibe los datos crudos via useBlogAdmin() si los necesita.
  */
 
 import {
@@ -7,17 +13,21 @@ import {
   useMemo, useEffect, type ReactNode,
 } from 'react';
 import {
-  getArticles,
+  getAllArticles,
   createArticle,
   updateArticle,
   deleteArticle,
 } from '@/services/articleService';
+import { articleRowToArticle } from '@/types/adapters';
+import type { Article } from '@/types/index';
 import type { BlogArticleRow, BlogArticleInsert, BlogArticleUpdate } from '@/types/supabase';
 
 interface BlogContextType {
-  articles:      BlogArticleRow[];
+  articles:      Article[];
   loading:       boolean;
   error:         string | null;
+  // Admin usa estos con los tipos de Supabase directamente
+  rawArticles:   BlogArticleRow[];
   addArticle:    (a: BlogArticleInsert) => Promise<void>;
   updateArticle: (id: string, data: BlogArticleUpdate) => Promise<void>;
   deleteArticle: (id: string) => Promise<void>;
@@ -27,50 +37,55 @@ interface BlogContextType {
 const BlogContext = createContext<BlogContextType | undefined>(undefined);
 
 export function BlogProvider({ children }: { children: ReactNode }) {
-  const [articles, setArticles] = useState<BlogArticleRow[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
-  const [tick,     setTick]     = useState(0);
+  const [rows,    setRows]    = useState<BlogArticleRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+  const [tick,    setTick]    = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    getArticles()
-      .then(data => { if (!cancelled) setArticles(data); })
+    getAllArticles()
+      .then(data => { if (!cancelled) setRows(data); })
       .catch(e  => { if (!cancelled) setError((e as Error).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [tick]);
 
+  // Adaptar BlogArticleRow[] → Article[] para páginas públicas
+  const articles = useMemo(() => rows.map(articleRowToArticle), [rows]);
+
   const addArticle = useCallback(async (a: BlogArticleInsert) => {
     const created = await createArticle(a);
-    setArticles(prev => [created, ...prev]);
+    setRows(prev => [created, ...prev]);
   }, []);
 
   const updateArticleFn = useCallback(async (id: string, data: BlogArticleUpdate) => {
     const updated = await updateArticle(id, data);
-    setArticles(prev => prev.map(x => x.id === id ? updated : x));
+    setRows(prev => prev.map(x => x.id === id ? updated : x));
   }, []);
 
   const deleteArticleFn = useCallback(async (id: string) => {
     await deleteArticle(id);
-    setArticles(prev => prev.filter(x => x.id !== id));
+    setRows(prev => prev.filter(x => x.id !== id));
   }, []);
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
 
   const value = useMemo(
     () => ({
-      articles, loading, error,
+      articles,
+      rawArticles: rows,
+      loading, error,
       addArticle,
       updateArticle: updateArticleFn,
       deleteArticle: deleteArticleFn,
       refresh,
     }),
-    [articles, loading, error, addArticle, updateArticleFn, deleteArticleFn, refresh],
+    [articles, rows, loading, error, addArticle, updateArticleFn, deleteArticleFn, refresh],
   );
 
   return (

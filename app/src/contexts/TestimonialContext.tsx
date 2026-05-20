@@ -1,5 +1,8 @@
 /**
- * TestimonialContext — conectado a Supabase
+ * TestimonialContext
+ *
+ * Devuelve `Testimonial[]` (tipo legacy) para que Home.tsx funcione sin cambios.
+ * Internamente usa TestimonialRow de Supabase y aplica el adaptador.
  */
 
 import {
@@ -12,12 +15,15 @@ import {
   updateTestimonial,
   deleteTestimonial,
 } from '@/services/testimonialService';
+import { testimonialRowToTestimonial } from '@/types/adapters';
+import type { Testimonial } from '@/types/index';
 import type { TestimonialRow, TestimonialInsert, TestimonialUpdate } from '@/types/supabase';
 
 interface TestimonialContextType {
-  testimonials:      TestimonialRow[];
+  testimonials:      Testimonial[];
   loading:           boolean;
   error:             string | null;
+  rawTestimonials:   TestimonialRow[];
   addTestimonial:    (t: TestimonialInsert) => Promise<void>;
   updateTestimonial: (id: string, data: TestimonialUpdate) => Promise<void>;
   deleteTestimonial: (id: string) => Promise<void>;
@@ -27,10 +33,10 @@ interface TestimonialContextType {
 const TestimonialContext = createContext<TestimonialContextType | undefined>(undefined);
 
 export function TestimonialProvider({ children }: { children: ReactNode }) {
-  const [testimonials, setTestimonials] = useState<TestimonialRow[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState<string | null>(null);
-  const [tick,         setTick]         = useState(0);
+  const [rows,    setRows]    = useState<TestimonialRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+  const [tick,    setTick]    = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,39 +44,47 @@ export function TestimonialProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     getTestimonials()
-      .then(data => { if (!cancelled) setTestimonials(data); })
+      .then(data => { if (!cancelled) setRows(data); })
       .catch(e  => { if (!cancelled) setError((e as Error).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [tick]);
 
+  // Adaptar TestimonialRow[] → Testimonial[] para Home.tsx
+  const testimonials = useMemo(
+    () => rows.map(testimonialRowToTestimonial),
+    [rows]
+  );
+
   const addTestimonial = useCallback(async (t: TestimonialInsert) => {
     const created = await createTestimonial(t);
-    setTestimonials(prev => [...prev, created]);
+    setRows(prev => [...prev, created]);
   }, []);
 
   const updateTestimonialFn = useCallback(async (id: string, data: TestimonialUpdate) => {
     const updated = await updateTestimonial(id, data);
-    setTestimonials(prev => prev.map(x => x.id === id ? updated : x));
+    setRows(prev => prev.map(x => x.id === id ? updated : x));
   }, []);
 
   const deleteTestimonialFn = useCallback(async (id: string) => {
     await deleteTestimonial(id);
-    setTestimonials(prev => prev.filter(x => x.id !== id));
+    setRows(prev => prev.filter(x => x.id !== id));
   }, []);
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
 
   const value = useMemo(
     () => ({
-      testimonials, loading, error,
+      testimonials,
+      rawTestimonials: rows,
+      loading, error,
       addTestimonial,
       updateTestimonial: updateTestimonialFn,
       deleteTestimonial: deleteTestimonialFn,
       refresh,
     }),
-    [testimonials, loading, error, addTestimonial, updateTestimonialFn, deleteTestimonialFn, refresh],
+    [testimonials, rows, loading, error, addTestimonial, updateTestimonialFn, deleteTestimonialFn, refresh],
   );
 
   return (

@@ -118,6 +118,9 @@ export interface BlogArticleRow {
   read_time:    string | null;
   status:       ArticleStatus;
   published_at: string | null;
+  // Campos desnormalizados (generados por trigger en la BD)
+  author_name:  string | null;
+  display_date: string | null;
   created_at:   string;
   updated_at:   string;
 }
