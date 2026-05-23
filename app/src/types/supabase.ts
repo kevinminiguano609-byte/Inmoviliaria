@@ -50,6 +50,8 @@ export interface PropertyRow {
   location:     string;
   address:      string | null;
   map_url:      string | null;
+  latitude:     number | null;    // Nueva: coordenada latitud
+  longitude:    number | null;    // Nueva: coordenada longitud
   area:         number | null;
   covered_area: number | null;
   bedrooms:     number | null;

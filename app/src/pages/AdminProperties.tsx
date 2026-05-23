@@ -22,11 +22,13 @@ import AdminModal from '@/components/admin/AdminModal';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import AdminFormField, { adminInputCls } from '@/components/admin/AdminFormField';
 import MediaUploader from '@/components/admin/MediaUploader';
+import MultiImageUploader, { type ImageItem } from '@/components/admin/MultiImageUploader';
+import PropertyMapPicker from '@/components/admin/PropertyMapPicker';
 import { useProperty } from '@/contexts/PropertyContext';
 import { useToast } from '@/contexts/ToastContext';
-import { addPropertyImage, setPropertyAmenities, getAmenities } from '@/services/propertyService';
+import { addPropertyImage, setPropertyAmenities, getAmenities, uploadMultiplePropertyImages, updatePropertyLocation, getPropertyImages } from '@/services/propertyService';
 import { uploadFile } from '@/services/mediaService';
-import type { PropertyRow, PropertyInsert, PropertyUpdate } from '@/types/supabase';
+import type { PropertyRow, PropertyInsert, PropertyUpdate, PropertyImageRow } from '@/types/supabase';
 import { useEffect } from 'react';
 
 const operationColors: Record<string, string> = {
@@ -49,10 +51,11 @@ interface FormState {
   parking:     number | '';
   badge:       string;
   description: string;
-  imageUrl:    string;       // URL o blob para preview
-  imageFile:   File | null;  // archivo real para subir
+  images:      ImageItem[];  // Múltiples imágenes
   amenities:   string;       // string separado por comas
   map_url:     string;
+  latitude:    number | null;
+  longitude:   number | null;
   featured:    boolean;
 }
 
@@ -60,8 +63,9 @@ const defaultForm: FormState = {
   title: '', operation: 'venta', type: 'departamento', currency: 'USD',
   status: 'publicada', price: '', location: '', address: '',
   area: '', bedrooms: '', bathrooms: '', parking: '',
-  badge: '', description: '', imageUrl: '', imageFile: null,
-  amenities: '', map_url: '', featured: false,
+  badge: '', description: '', images: [],
+  amenities: '', map_url: '', latitude: null, longitude: null,
+  featured: false,
 };
 
 export default function AdminProperties() {
@@ -85,6 +89,13 @@ export default function AdminProperties() {
   useEffect(() => {
     getAmenities().then(setAmenityCatalog).catch(() => {});
   }, []);
+
+  // Cargar imágenes existentes al editar
+  useEffect(() => {
+    if (editing) {
+      loadExistingImages(editing.id);
+    }
+  }, [editing]);
 
   // ── Filtering ──────────────────────────────────────────────
   const filtered = (properties as PropertyRow[]).filter(p => {
@@ -121,13 +132,30 @@ export default function AdminProperties() {
       parking:     p.parking ?? '',
       badge:       p.badge ?? '',
       description: p.description ?? '',
-      imageUrl:    '',   // se carga desde property_images si existe
-      imageFile:   null,
+      images:      [],   // se carga desde property_images si existe
       amenities:   '',   // se carga desde property_amenities si existe
       map_url:     p.map_url ?? '',
+      latitude:    p.latitude,
+      longitude:   p.longitude,
       featured:    p.featured,
     });
     setShowForm(true);
+  };
+
+  // Cargar imágenes existentes de la propiedad
+  const loadExistingImages = async (propertyId: string) => {
+    try {
+      const images = await getPropertyImages(propertyId);
+      const imageItems: ImageItem[] = images.map((img: PropertyImageRow) => ({
+        id: img.id,
+        url: img.url,
+        isCover: img.is_cover,
+        order: img.sort_order,
+      }));
+      setForm(prev => ({ ...prev, images: imageItems }));
+    } catch (err) {
+      console.warn('Error loading existing images:', err);
+    }
   };
 
   const handleSave = async () => {
@@ -135,6 +163,20 @@ export default function AdminProperties() {
       showToast('Título y precio son obligatorios', 'error');
       return;
     }
+
+    // Validar que haya al menos una imagen
+    if (form.images.length === 0) {
+      showToast('Debe subir al menos una imagen', 'error');
+      return;
+    }
+
+    // Validar que haya exactamente una imagen como cover
+    const coverCount = form.images.filter(img => img.isCover).length;
+    if (coverCount !== 1) {
+      showToast('Debe haber exactamente una imagen marcada como principal', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. Construir payload para la tabla properties
@@ -156,6 +198,8 @@ export default function AdminProperties() {
         badge:       form.badge || null,
         description: form.description || null,
         map_url:     form.map_url || null,
+        latitude:    form.latitude,
+        longitude:   form.longitude,
       };
 
       let propertyId: string;
@@ -173,21 +217,36 @@ export default function AdminProperties() {
         showToast('Propiedad creada', 'success');
       }
 
-      // 2. Subir imagen si hay archivo nuevo
-      if (form.imageFile) {
+      // 2. Subir imágenes nuevas
+      const newImages = form.images.filter(img => img.file && !img.id);
+      if (newImages.length > 0) {
         try {
-          const { uploadFile: upload } = await import('@/services/mediaService');
-          const result = await upload(form.imageFile, 'property-images');
-          await addPropertyImage(propertyId, result.url, result.storagePath, true, 0);
+          const imageUploadData = newImages.map(img => ({
+            file: img.file!,
+            isCover: img.isCover,
+            order: img.order,
+          }));
+
+          await uploadMultiplePropertyImages(propertyId, imageUploadData);
+          showToast(`${newImages.length} imagen(es) subida(s) correctamente`, 'success');
         } catch (imgErr) {
-          showToast('Propiedad guardada, pero falló la imagen: ' + (imgErr as Error).message, 'info');
+          showToast('Propiedad guardada, pero falló la subida de imágenes: ' + (imgErr as Error).message, 'info');
         }
-      } else if (form.imageUrl && form.imageUrl.startsWith('http') && !editing) {
-        // URL directa (no blob)
-        await addPropertyImage(propertyId, form.imageUrl, '', true, 0);
       }
 
-      // 3. Guardar amenities si se especificaron
+      // 3. Actualizar ubicación si hay coordenadas
+      if (form.latitude !== null && form.longitude !== null) {
+        try {
+          await updatePropertyLocation(propertyId, {
+            latitude: form.latitude,
+            longitude: form.longitude
+          }, form.address || undefined);
+        } catch (locErr) {
+          console.warn('Error updating location:', locErr);
+        }
+      }
+
+      // 4. Guardar amenities si se especificaron
       if (form.amenities.trim()) {
         const names = form.amenities.split(',').map(s => s.trim()).filter(Boolean);
         const ids = names
@@ -435,9 +494,10 @@ export default function AdminProperties() {
               placeholder="Ej: Nuevo, Destacado" className={adminInputCls} />
           </AdminFormField>
 
-          <AdminFormField label="URL del mapa (embed)">
+          <AdminFormField label="URL del mapa (embed) - Legacy">
             <input value={form.map_url} onChange={e => set('map_url', e.target.value)}
               placeholder="https://maps.google.com/..." className={adminInputCls} />
+            <p className="text-xs text-[#999] mt-1">Este campo se mantiene para compatibilidad. Usa el mapa interactivo abajo.</p>
           </AdminFormField>
         </div>
 
@@ -448,16 +508,31 @@ export default function AdminProperties() {
           <label htmlFor="featured" className="text-sm text-[#333333]">Propiedad destacada (aparece primero en el sitio)</label>
         </div>
 
-        {/* Imagen principal — sube a Supabase Storage */}
-        <div className="mt-4">
-          <MediaUploader
-            label="Imagen principal"
-            value={form.imageUrl}
-            onChange={(url, file) => {
-              set('imageUrl', url);
-              set('imageFile', file ?? null);
+        {/* Mapa interactivo */}
+        <div className="mt-6">
+          <PropertyMapPicker
+            value={{ lat: form.latitude, lng: form.longitude }}
+            address={form.address}
+            onChange={(coordinates, newAddress) => {
+              set('latitude', coordinates.lat);
+              set('longitude', coordinates.lng);
+              if (newAddress) {
+                set('address', newAddress);
+              }
             }}
-            accept="image"
+            onAddressChange={(newAddress) => set('address', newAddress)}
+            height="300px"
+          />
+        </div>
+
+        {/* Múltiples imágenes */}
+        <div className="mt-6">
+          <MultiImageUploader
+            label="Imágenes de la propiedad"
+            value={form.images}
+            onChange={(images) => set('images', images)}
+            maxImages={20}
+            accept="image/*"
             previewRatio="aspect-video"
           />
         </div>

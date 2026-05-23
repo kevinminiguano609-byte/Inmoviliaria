@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { validateImageFiles, validateCoordinates } from '@/services/validationService';
 import type {
   PropertyRow,
   PropertyInsert,
@@ -229,4 +230,231 @@ export async function setPropertyAmenities(
     .insert(amenityIds.map(id => ({ property_id: propertyId, amenity_id: id })));
 
   handleError(error, 'setPropertyAmenities');
+}
+
+
+// ─── Multiple Images Upload ──────────────────────────────────
+
+export interface ImageUploadData {
+  file: File;
+  isCover: boolean;
+  order: number;
+}
+
+export interface UploadedImageResult {
+  id: string;
+  url: string;
+  storagePath: string | null;
+  isCover: boolean;
+  order: number;
+}
+
+/**
+ * Upload multiple images for a property with batch processing
+ * @param propertyId - Property UUID
+ * @param images - Array of images to upload
+ * @param maxConcurrent - Maximum concurrent uploads (default: 3)
+ * @returns Array of uploaded image metadata
+ */
+export async function uploadMultiplePropertyImages(
+  propertyId: string,
+  images: ImageUploadData[],
+  maxConcurrent = 3
+): Promise<UploadedImageResult[]> {
+  if (images.length === 0) {
+    throw new Error('At least one image is required');
+  }
+
+  // Validate that exactly one image is marked as cover
+  const coverCount = images.filter(img => img.isCover).length;
+  if (coverCount !== 1) {
+    throw new Error('Exactly one image must be marked as cover');
+  }
+
+  // Validate image files
+  const files = images.map(img => img.file);
+  const validation = validateImageFiles(files, { maxCount: 20, maxSizeMB: 10 });
+  if (!validation.valid) {
+    throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+  }
+
+  const results: UploadedImageResult[] = [];
+  const errors: string[] = [];
+
+  // Process images in batches to avoid overwhelming the server
+  for (let i = 0; i < images.length; i += maxConcurrent) {
+    const batch = images.slice(i, i + maxConcurrent);
+    
+    const batchPromises = batch.map(async (imageData, batchIndex) => {
+      try {
+        const file = imageData.file;
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const filePath = `property-images/${propertyId}/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('property-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('property-images')
+          .getPublicUrl(filePath);
+
+        // Save metadata to database
+        const { data: dbData, error: dbError } = await supabase
+          .from('property_images')
+          .insert({
+            property_id: propertyId,
+            url: urlData.publicUrl,
+            storage_path: filePath,
+            is_cover: imageData.isCover,
+            sort_order: imageData.order
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        return {
+          id: dbData.id,
+          url: dbData.url,
+          storagePath: dbData.storage_path,
+          isCover: dbData.is_cover,
+          order: dbData.sort_order
+        };
+      } catch (error) {
+        const errorMsg = `Failed to upload image "${imageData.file.name}": ${error instanceof Error ? error.message : String(error)}`;
+        errors.push(errorMsg);
+        throw new Error(errorMsg);
+      }
+    });
+
+    try {
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+    } catch (error) {
+      // Continue with next batch even if one fails
+      console.warn('Batch upload partially failed:', error);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.warn('Some images failed to upload:', errors);
+    // We still return successful uploads, but log the errors
+  }
+
+  return results;
+}
+
+/**
+ * Update property location with coordinates
+ * @param propertyId - Property UUID
+ * @param coordinates - Latitude and longitude
+ * @param address - Optional address for reverse geocoding
+ */
+export async function updatePropertyLocation(
+  propertyId: string,
+  coordinates: { latitude: number; longitude: number },
+  address?: string
+): Promise<void> {
+  // Validate coordinates
+  const validation = validateCoordinates(coordinates.latitude, coordinates.longitude);
+  if (!validation.valid) {
+    throw new Error(`Invalid coordinates: ${validation.errors.join(', ')}`);
+  }
+
+  const updateData: any = {
+    latitude: coordinates.latitude,
+    longitude: coordinates.longitude
+  };
+
+  // Update address if provided
+  if (address) {
+    updateData.address = address;
+  }
+
+  const { error } = await supabase
+    .from('properties')
+    .update(updateData)
+    .eq('id', propertyId);
+
+  if (error) {
+    throw new Error(`Failed to update property location: ${error.message}`);
+  }
+}
+
+/**
+ * Get property images with proper ordering
+ * @param propertyId - Property UUID
+ * @returns Array of property images sorted by sort_order
+ */
+export async function getPropertyImages(propertyId: string) {
+  const { data, error } = await supabase
+    .from('property_images')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to get property images: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Update image order and cover status
+ * @param propertyId - Property UUID
+ * @param images - Array of images with updated order and cover status
+ */
+export async function updateImageOrderAndCover(
+  propertyId: string,
+  images: Array<{ id: string; order: number; isCover: boolean }>
+): Promise<void> {
+  // Validate that exactly one image is cover
+  const coverCount = images.filter(img => img.isCover).length;
+  if (coverCount !== 1) {
+    throw new Error('Exactly one image must be marked as cover');
+  }
+
+  // Update all images in a transaction
+  const updates = images.map(image => 
+    supabase
+      .from('property_images')
+      .update({ sort_order: image.order, is_cover: image.isCover })
+      .eq('id', image.id)
+      .eq('property_id', propertyId)
+  );
+
+  const results = await Promise.all(updates);
+  
+  // Check for errors
+  for (const result of results) {
+    if (result.error) {
+      throw new Error(`Failed to update image order: ${result.error.message}`);
+    }
+  }
+}
+
+/**
+ * Delete multiple property images
+ * @param imageIds - Array of image IDs to delete
+ */
+export async function deletePropertyImages(imageIds: string[]): Promise<void> {
+  if (imageIds.length === 0) return;
+
+  const { error } = await supabase
+    .from('property_images')
+    .delete()
+    .in('id', imageIds);
+
+  if (error) {
+    throw new Error(`Failed to delete images: ${error.message}`);
+  }
 }

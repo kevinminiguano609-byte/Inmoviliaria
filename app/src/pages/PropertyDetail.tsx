@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   MapPin, ChevronLeft, ChevronRight, X,
@@ -7,21 +7,90 @@ import {
 import PageLayout from '@/layouts/PageLayout';
 import ScrollReveal from '@/components/ScrollReveal';
 import PropertyCard from '@/components/PropertyCard';
+import ImageGalleryPreview from '@/components/property/ImageGalleryPreview';
+import PropertyLocationDisplay from '@/components/property/PropertyLocationDisplay';
 import { useProperty } from '@/contexts/PropertyContext';
 import { useLead } from '@/contexts/LeadContext';
 import { useToast } from '@/contexts/ToastContext';
+import { getPropertyBySlug, getPropertyImages } from '@/services/propertyService';
+import type { PropertyWithRelations, PropertyImageRow } from '@/types/supabase';
 
 export default function PropertyDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { properties } = useProperty();
-  const property = properties.find(p => p.slug === slug);
+  const [property, setProperty] = useState<PropertyWithRelations | null>(null);
+  const [images, setImages] = useState<PropertyImageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!property) {
+  useEffect(() => {
+    const loadPropertyData = async () => {
+      if (!slug) return;
+      
+      try {
+        setLoading(true);
+        // Intentar obtener propiedad con relaciones desde Supabase
+        const propertyData = await getPropertyBySlug(slug);
+        
+        if (propertyData) {
+          setProperty(propertyData);
+          // Cargar imágenes si no vienen en los datos
+          if (!propertyData.images || propertyData.images.length === 0) {
+            const propertyImages = await getPropertyImages(propertyData.id);
+            setImages(propertyImages);
+          } else {
+            setImages(propertyData.images);
+          }
+        } else {
+          // Fallback a datos del contexto
+          const contextProperty = properties.find(p => p.slug === slug);
+          if (contextProperty) {
+            // Convertir PropertyRow a PropertyWithRelations básico
+            const basicProperty: PropertyWithRelations = {
+              ...contextProperty,
+              images: [],
+              amenities: [],
+              agent: null
+            };
+            setProperty(basicProperty);
+            
+            // Cargar imágenes desde servicio
+            const propertyImages = await getPropertyImages(contextProperty.id);
+            setImages(propertyImages);
+          } else {
+            setError('Propiedad no encontrada');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading property:', err);
+        setError('Error al cargar la propiedad');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPropertyData();
+  }, [slug, properties]);
+
+  if (loading) {
     return (
       <PageLayout>
         <div className="pt-[70px] min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl text-[#333333] mb-4">Propiedad no encontrada</h1>
+            <div className="w-12 h-12 border-4 border-[#E53935] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[#333333]">Cargando propiedad...</p>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <PageLayout>
+        <div className="pt-[70px] min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl text-[#333333] mb-4">{error || 'Propiedad no encontrada'}</h1>
             <Link to="/propiedades" className="text-[#E53935] hover:underline">Volver a propiedades</Link>
           </div>
         </div>
@@ -51,7 +120,7 @@ export default function PropertyDetail() {
             <div>
               <h1 className="text-2xl md:text-[40px] font-normal text-[#333333]">{property.title}</h1>
               <div className="flex items-center gap-1 text-sm text-[#666666] mt-2">
-                <MapPin size={14} /> {property.address}
+                <MapPin size={14} /> {property.address || property.location}
               </div>
             </div>
             <div className="text-left md:text-right shrink-0">
@@ -71,7 +140,12 @@ export default function PropertyDetail() {
         </div>
       </div>
 
-      <PropertyGallery property={property} />
+      <div className="max-w-[1360px] mx-auto px-5 md:px-10 mt-6">
+        <ImageGalleryPreview 
+          images={images} 
+          propertyTitle={property.title} 
+        />
+      </div>
 
       <div className="max-w-[1360px] mx-auto px-5 md:px-10 py-12 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -103,74 +177,12 @@ export default function PropertyDetail() {
   );
 }
 
-function PropertyGallery({ property }: { property: import('@/types').Property }) {
-  const [lightbox, setLightbox] = useState<number | null>(null);
-  const allImages = [property.image, ...property.gallery].filter(Boolean);
 
-  const nextImage = () => setLightbox(prev => prev !== null ? (prev + 1) % allImages.length : 0);
-  const prevImage = () => setLightbox(prev => prev !== null ? (prev - 1 + allImages.length) % allImages.length : 0);
 
-  return (
-    <>
-      <div className="max-w-[1360px] mx-auto px-5 md:px-10 mt-6">
-        <div className="grid grid-cols-1 gap-2">
-          <div className="aspect-video rounded-xl overflow-hidden cursor-pointer" onClick={() => setLightbox(0)}>
-            <img src={property.image} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-          </div>
-          {property.gallery.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {property.gallery.slice(0, 4).map((img, i) => (
-                <div
-                  key={i}
-                  className="aspect-[4/3] rounded-lg overflow-hidden cursor-pointer relative group"
-                  onClick={() => setLightbox(i + 1)}
-                >
-                  <img src={img} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover" />
-                  {i === 3 && property.gallery.length > 4 && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="text-white font-medium text-sm">+{property.gallery.length - 3} fotos</span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/>
-                    </svg>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Lightbox */}
-      {lightbox !== null && (
-        <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center" onClick={() => setLightbox(null)}>
-          <button className="absolute top-4 right-4 text-white p-2" onClick={() => setLightbox(null)}>
-            <X size={32} />
-          </button>
-          <button className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-white/80" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
-            <ChevronLeft size={40} />
-          </button>
-          <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-2 hover:text-white/80" onClick={(e) => { e.stopPropagation(); nextImage(); }}>
-            <ChevronRight size={40} />
-          </button>
-          <div className="max-w-[90vw] max-h-[80vh]" onClick={e => e.stopPropagation()}>
-            <img src={allImages[lightbox]} alt="" className="max-w-full max-h-[80vh] object-contain rounded-lg" />
-          </div>
-          <p className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
-            {lightbox + 1} / {allImages.length}
-          </p>
-        </div>
-      )}
-    </>
-  );
-}
-
-function PropertyInfo({ property }: { property: import('@/types').Property }) {
+function PropertyInfo({ property }: { property: PropertyWithRelations }) {
   const features = [
-    { label: 'Superficie total', value: `${property.area} m²` },
-    ...(property.coveredArea ? [{ label: 'Superficie cubierta', value: `${property.coveredArea} m²` }] : []),
+    ...(property.area ? [{ label: 'Superficie total', value: `${property.area} m²` }] : []),
+    ...(property.covered_area ? [{ label: 'Superficie cubierta', value: `${property.covered_area} m²` }] : []),
     ...(property.rooms ? [{ label: 'Ambientes', value: `${property.rooms}` }] : []),
     ...(property.bedrooms ? [{ label: 'Dormitorios', value: `${property.bedrooms}` }] : []),
     ...(property.bathrooms ? [{ label: 'Baños', value: `${property.bathrooms}` }] : []),
@@ -184,54 +196,51 @@ function PropertyInfo({ property }: { property: import('@/types').Property }) {
   return (
     <div>
       <ScrollReveal>
-        <h3 className="text-2xl font-normal text-[#333333] mb-4">Descripci&oacute;n</h3>
-        <p className="text-base text-[#333333] leading-relaxed">{property.description}</p>
+        <h3 className="text-2xl font-normal text-[#333333] mb-4">Descripción</h3>
+        <p className="text-base text-[#333333] leading-relaxed">{property.description || 'No hay descripción disponible.'}</p>
       </ScrollReveal>
 
-      <ScrollReveal>
-        <h3 className="text-2xl font-normal text-[#333333] mt-12 mb-6">Caracter&iacute;sticas</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {features.map((f, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-[#E53935]" />
-              <span className="text-sm font-medium text-[#333333]">{f.label}:</span>
-              <span className="text-sm text-[#666666]">{f.value}</span>
-            </div>
-          ))}
-        </div>
-      </ScrollReveal>
+      {features.length > 0 && (
+        <ScrollReveal>
+          <h3 className="text-2xl font-normal text-[#333333] mt-12 mb-6">Características</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-[#E53935]" />
+                <span className="text-sm font-medium text-[#333333]">{f.label}:</span>
+                <span className="text-sm text-[#666666]">{f.value}</span>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      )}
 
-      {property.amenities.length > 0 && (
+      {property.amenities && property.amenities.length > 0 && (
         <ScrollReveal>
           <h3 className="text-2xl font-normal text-[#333333] mt-12 mb-6">Amenities</h3>
           <div className="flex flex-wrap gap-3">
-            {property.amenities.map(a => (
-              <span key={a} className="bg-[#F5F5F5] text-[#333333] text-sm px-4 py-2 rounded-full">{a}</span>
+            {property.amenities.map((a, i) => (
+              <span key={i} className="bg-[#F5F5F5] text-[#333333] text-sm px-4 py-2 rounded-full">{a}</span>
             ))}
           </div>
         </ScrollReveal>
       )}
 
       <ScrollReveal>
-        <h3 className="text-2xl font-normal text-[#333333] mt-12 mb-6">Ubicaci&oacute;n</h3>
-        <p className="text-sm text-[#666666] mb-4">{property.address}</p>
-        <div className="rounded-xl overflow-hidden h-[400px]">
-          <iframe
-            src={property.mapUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Ubicación"
-          />
-        </div>
+        <PropertyLocationDisplay
+          latitude={property.latitude}
+          longitude={property.longitude}
+          address={property.address}
+          mapUrl={property.map_url}
+          propertyTitle={property.title}
+          height="400px"
+        />
       </ScrollReveal>
     </div>
   );
 }
 
-function ContactSidebar({ property }: { property: import('@/types').Property }) {
+function ContactSidebar({ property }: { property: PropertyWithRelations }) {
   const [showModal, setShowModal] = useState(false);
   const formatPrice = () => {
     if (property.operation === 'alquiler') return `$${property.price.toLocaleString('es-AR')}/mes`;
@@ -261,16 +270,28 @@ function ContactSidebar({ property }: { property: import('@/types').Property }) 
           WhatsApp
         </a>
 
-        <div className="border-t border-[#E0E0E0] pt-6">
-          <div className="flex items-center gap-3">
-            <img src={property.agent.avatar} alt={property.agent.name} className="w-14 h-14 rounded-full object-cover" />
-            <div>
-              <p className="font-medium text-[#333333]">{property.agent.name}</p>
-              <p className="text-sm text-[#666666]">{property.agent.role}</p>
-              <p className="text-sm text-[#666666] flex items-center gap-1"><Phone size={12} /> {property.agent.phone}</p>
+        {property.agent && (
+          <div className="border-t border-[#E0E0E0] pt-6">
+            <div className="flex items-center gap-3">
+              {property.agent.avatar_url ? (
+                <img src={property.agent.avatar_url} alt={property.agent.full_name} className="w-14 h-14 rounded-full object-cover" />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-[#F5F5F5] flex items-center justify-center text-[#999] text-sm">
+                  {property.agent.full_name.charAt(0)}
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-[#333333]">{property.agent.full_name}</p>
+                <p className="text-sm text-[#666666]">{property.agent.role === 'admin' ? 'Administrador' : 'Agente'}</p>
+                {property.agent.phone && (
+                  <p className="text-sm text-[#666666] flex items-center gap-1">
+                    <Phone size={12} /> {property.agent.phone}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-6">
           <p className="text-sm font-medium text-[#333333] mb-3">Compartir</p>
@@ -289,7 +310,7 @@ function ContactSidebar({ property }: { property: import('@/types').Property }) 
   );
 }
 
-function ContactModal({ property, onClose }: { property: import('@/types').Property; onClose: () => void }) {
+function ContactModal({ property, onClose }: { property: PropertyWithRelations; onClose: () => void }) {
   const { addLead } = useLead();
   const { showToast } = useToast();
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
